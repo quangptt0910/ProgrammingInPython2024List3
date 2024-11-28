@@ -78,7 +78,7 @@ def fasta_id_to_dict(identifier):
     full name : ProteinName
     name of the organism : OS=OrganismName - scientific name of the organism
 
-    :param identifier:
+    :param identifier: string of FASTA identifier
     :return: dictionary of parsed identifier
     """
     identifier = identifier.replace('>','')
