@@ -79,7 +79,7 @@ def fasta_id_to_dict(identifier):
     name of the organism : OS=OrganismName - scientific name of the organism
 
     :param identifier:
-    :return:
+    :return: dictionary of parsed identifier
     """
     identifier = identifier.replace('>','')
     parts = identifier.split('|')
