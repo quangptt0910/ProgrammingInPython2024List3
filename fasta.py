@@ -145,7 +145,7 @@ def fetch_uniprot_sequences(protein_name, max_sequences):
 
     Args:
         protein_name (str): Name of the protein to search
-        max_sequences (int, optional): Maximum number of sequences to retrieve. Defaults to 10.
+        max_sequences (int, optional): Maximum number of sequences to retrieve.
 
     Returns:
         list: A list of ProteinSequence objects
@@ -265,16 +265,7 @@ def fetch_main():
 
             # Read protein sequences from FASTA file
             list_seq = fasta_to_prot_seq(args.fasta)
-
-            # Prepare protein data
-            for seq in list_seq:
-                # Extract identifier information
-                prot_dict = fasta_id_to_dict(seq.identifier)
-
-                # Add sequence to the dictionary
-                prot_dict['sequence'] = seq.data
-
-                protein_data.append(prot_dict)
+            print(f"Loaded {len(list_seq)} sequences from FASTA file")
 
         # Fetch from UniProt
         elif args.protein:
@@ -289,6 +280,7 @@ def fetch_main():
         # Check if any sequences were retrieved
         if not list_seq:
             raise RuntimeError("No protein sequences were found.")
+
         # Prepare protein data
         for seq in list_seq:
             try:
