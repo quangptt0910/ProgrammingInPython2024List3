@@ -226,9 +226,13 @@ def fetch_main():
 
     Raises:
     FileNotFoundError: If the specified FASTA file does not exist.
-    Exception: For any errors encountered during UniProt sequence retrieval.
+    ValueError: If neither FASTA file nor protein name is provided.
+    RuntimeError: If no sequences are found or retrieved.
+    IOError: If there are issues writing output files.
 
     Note:
+    - At least one mutually exclusive argument (--fasta or --protein) must be specified.
+    - --max_seq is mandatory when using --protein.
     - Requires external libraries: argparse, requests
     - Depends on helper functions: fasta_to_prot_seq(), fetch_uniprot_sequences(),
       fasta_id_to_dict(), save_as_pickle(), save_as_json(), save_as_xml()
