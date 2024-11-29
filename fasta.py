@@ -1,5 +1,6 @@
 import argparse
 import json
+import os
 import pickle
 import sys
 import xml.etree.ElementTree as ET
@@ -84,13 +85,9 @@ def fasta_id_to_dict(identifier):
     identifier = identifier.replace('>','')
     parts = identifier.split('|')
 
-    parsed_identifier = {
-        'accession': '',
-        'protein name': '',
-        'organism': ''
-    }
-
-    parsed_identifier['accession'] = parts[1] # Take the accession part
+    parsed_identifier = {'accession': parts[1],
+                         'protein name': '',
+                         'organism': ''}
 
     details = parts[2] # after the 2nd '|'
 
@@ -101,9 +98,9 @@ def fasta_id_to_dict(identifier):
     protein_name = entryName_proteinName.split(' ', 1)[1] # Take the proteinName part
     parsed_identifier['protein name'] = protein_name
 
-    OX_to_end = details_section[1]
-    OX_part = OX_to_end.split(' OX=') # take the OX organism part
-    organism_name = OX_part[0]
+    ox_to_end = details_section[1]
+    ox_part = ox_to_end.split(' OX=') # take the OX organism part
+    organism_name = ox_part[0]
 
     parsed_identifier['organism'] = organism_name
 
@@ -133,58 +130,6 @@ def save_as_xml(data, filename):
             element.text = str(val)
     tree = ET.ElementTree(root)
     tree.write(filename)
-
-"""
-d) Write program fasta.py which takes as argument --fasta a file name of UniProtstyle FASTA file, uses the above-defined functions to extract information from it, and
-creates the pickle, json or xml files with names specified by program arguments --pickle,
---json, --xml, respectively, such that its entries provide accession, full_name, sequence,
-and organism.
-"""
-def process_main():
-    """Main function to process FASTA file.
-
-    # Basic usage with just the FASTA file
-    python fasta.py --fasta uniprot_albumin.fasta
-
-    # Save to all three formats
-    python fasta.py --fasta uniprot_albumin.fasta --pickle output.pkl --json output.json --xml output.xml
-
-    # Save to specific formats
-    python fasta.py --fasta uniprot_albumin.fasta --pickle output.pkl
-    python fasta.py --fasta uniprot_albumin.fasta --json output.json
-    python fasta.py --fasta uniprot_albumin.fasta --xml output.xml
-    """
-    # Set up argument parser
-    parser = argparse.ArgumentParser(description="Process a UniProt-style FASTA file.")
-    parser.add_argument('--fasta', required=True, help="Path to the UniProt-style FASTA file")
-    parser.add_argument('--pickle', help="Output pickle file name")
-    parser.add_argument('--json', help="Output JSON file name")
-    parser.add_argument('--xml', help="Output XML file name")
-
-    # Parse arguments
-    args = parser.parse_args()
-
-    # Read protein sequences from FASTA file
-    list_seq = fasta_to_prot_seq(args.fasta)
-
-    # Prepare protein data
-    protein_data = []
-    for seq in list_seq:
-        # Extract identifier information
-        prot_dict = fasta_id_to_dict(seq.identifier)
-
-        # Add sequence to the dictionary
-        prot_dict['sequence'] = seq.data
-
-        protein_data.append(prot_dict)
-
-    # Save data in specified formats
-    if args.pickle:
-        save_as_pickle(protein_data, args.pickle)
-    if args.json:
-        save_as_json(protein_data, args.json)
-    if args.xml:
-        save_as_xml(protein_data, args.xml)
 
 
 """
@@ -240,21 +185,59 @@ def fetch_uniprot_sequences(protein_name, max_sequences):
 
 def fetch_main():
     """
-        Main function to fetch and process protein sequences from UniProt.
+    Fetch and process protein sequences from UniProt using either a FASTA file or direct protein search.
 
-        Usage examples:
-        # Fetch up to 5 sequences for albumin
-        python fasta.py --protein albumin --max_seq 5 --json albumin.json
+    This function provides flexible functionality for retrieving protein sequence data through two primary methods:
+    1. Reading sequences from a local UniProt-style FASTA file
+    2. Fetching sequences directly from the UniProt API by protein name
 
-        # Fetch and save in multiple formats
-        python fasta.py --protein albumin --max_seq 10 --pickle albumin.pkl --json albumin.json --xml albumin.xml
-        """
+    Parameters:
+    None (uses command-line arguments)
 
-    # !pip install requests
+    Optional Command-Line Arguments:
+    --fasta : str, optional
+        Path to a UniProt-style FASTA file containing protein sequences.
+
+    --protein : str, optional
+        Name of the protein to fetch sequences for from UniProt.
+
+    --max_seq : int, optional
+        Maximum number of sequences to retrieve when searching by protein name.
+        Default is None, which may return all available sequences.
+
+    --pickle : str, optional
+        Output file path for saving protein data in pickle format.
+
+    --json : str, optional
+        Output file path for saving protein data in JSON format.
+
+    --xml : str, optional
+        Output file path for saving protein data in XML format.
+
+    Usage Examples:
+    # Read sequences from a FASTA file
+    python fasta.py --fasta uniprot_albumin.fasta --json output.json
+
+    # Fetch up to 5 sequences for albumin
+    python fasta.py --protein albumin --max_seq 5 --json albumin.json
+
+    # Fetch and save in multiple formats
+    python fasta.py --protein albumin --max_seq 10 --pickle albumin.pkl --json albumin.json --xml albumin.xml
+
+    Raises:
+    FileNotFoundError: If the specified FASTA file does not exist.
+    Exception: For any errors encountered during UniProt sequence retrieval.
+
+    Note:
+    - Requires external libraries: argparse, requests
+    - Depends on helper functions: fasta_to_prot_seq(), fetch_uniprot_sequences(),
+      fasta_id_to_dict(), save_as_pickle(), save_as_json(), save_as_xml()
+    """
+
     parser = argparse.ArgumentParser(description="Fetch protein sequences from UniProt API.")
-    parser.add_argument('--protein', required=True, help="Name of the protein")
-    parser.add_argument('--max_seq', required=True,type=int, help="Maximum number of sequences to return")
-    #parser.add_argument('--fasta', required=True, help="Path to the UniProt-style FASTA file")
+    parser.add_argument('--fasta', help="Path to the UniProt-style FASTA file")
+    parser.add_argument('--protein', help="Name of the protein")
+    parser.add_argument('--max_seq',type=int, help="Maximum number of sequences to return")
     parser.add_argument('--pickle', help="Output pickle file name")
     parser.add_argument('--json', help="Output JSON file name")
     parser.add_argument('--xml', help="Output XML file name")
@@ -262,32 +245,77 @@ def fetch_main():
     # Parse arguments
     args = parser.parse_args()
 
+    # Validate input
+    if not args.fasta and not args.protein:
+        raise ValueError("Either a FASTA file or a protein name must be provided.")
+
+    # Validate max_seq
+    if args.max_seq is not None and (args.max_seq <= 0 or not isinstance(args.max_seq, int)):
+        raise ValueError("Maximum sequences must be a positive integer.")
+
+    protein_data = []
     try:
-        # Fetch protein sequences from UniProt
-        list_seq = fetch_uniprot_sequences(args.protein, args.max_seq)
+        if args.fasta:
+            if not os.path.exists(args.fasta):
+                raise FileNotFoundError(f"The specified FASTA file does not exist: {args.fasta}")
 
+            # Read protein sequences from FASTA file
+            list_seq = fasta_to_prot_seq(args.fasta)
+
+            # Prepare protein data
+            for seq in list_seq:
+                # Extract identifier information
+                prot_dict = fasta_id_to_dict(seq.identifier)
+
+                # Add sequence to the dictionary
+                prot_dict['sequence'] = seq.data
+
+                protein_data.append(prot_dict)
+
+        # Fetch from UniProt
+        elif args.protein:
+            try:
+                # Fetch protein sequences from UniProt
+                list_seq = fetch_uniprot_sequences(args.protein, args.max_seq)
+                print(f"Retrieved {len(list_seq)} sequences for protein: {args.protein}")
+            except Exception as e:
+                print(f"Error fetching UniProt sequences: {e}", file=sys.stderr)
+                raise RuntimeError(f"Failed to retrieve sequences for protein: {args.protein}")
+
+        # Check if any sequences were retrieved
+        if not list_seq:
+            raise RuntimeError("No protein sequences were found.")
         # Prepare protein data
-        protein_data = []
         for seq in list_seq:
-            # Extract identifier information
-            prot_dict = fasta_id_to_dict(seq.identifier)
+            try:
+                # Extract identifier information
+                prot_dict = fasta_id_to_dict(seq.identifier)
 
-            # Add sequence to the dictionary
-            prot_dict['sequence'] = seq.data
+                # Add sequence to the dictionary
+                prot_dict['sequence'] = seq.data
+                protein_data.append(prot_dict)
+            except Exception as e:
+                print(f"Could not process sequence {seq.identifier}: {e}", file=sys.stderr)
 
-            protein_data.append(prot_dict)
+            # Save data in specified formats with error handling
+        output_formats = [
+            ('pickle', args.pickle, save_as_pickle),
+            ('json', args.json, save_as_json),
+            ('xml', args.xml, save_as_xml)
+        ]
 
-        # Save data in specified formats
-        if args.pickle:
-            save_as_pickle(protein_data, args.pickle)
-        if args.json:
-            save_as_json(protein_data, args.json)
-        if args.xml:
-            save_as_xml(protein_data, args.xml)
+        for format_name, output_file, save_func in output_formats:
+            if output_file:
+                try:
+                    save_func(protein_data, output_file)
+                    print(f"Successfully saved {format_name} to {output_file}")
+                except Exception as e:
+                    print(f"Error saving {format_name} file: {e}", file=sys.stderr)
+                    raise IOError(f"Failed to save {format_name} file: {output_file}")
 
     except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
+        print(f"An unexpected error occurred: {e}", file=sys.stderr)
+        raise
 
 if __name__ == "__main__":
-    #process_main()
     fetch_main()
